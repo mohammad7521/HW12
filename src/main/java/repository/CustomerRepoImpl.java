@@ -5,6 +5,9 @@ import models.Customer;
 import org.hibernate.SessionFactory;
 import util.HibernateUtil;
 
+import javax.persistence.Query;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
 import java.util.List;
 
 public class CustomerRepoImpl implements BaseRepo<Customer>{
@@ -29,7 +32,7 @@ public class CustomerRepoImpl implements BaseRepo<Customer>{
     }
 
     @Override
-    public int remove(Customer customer) {
+    public Long remove(Customer customer) {
         var session = sessionFactory.openSession();
         var transaction=session.beginTransaction();
 
@@ -45,13 +48,12 @@ public class CustomerRepoImpl implements BaseRepo<Customer>{
 
 
     @Override
-    public int update(Customer customer) {
+    public void update(Customer customer) {
         try (var session = sessionFactory.openSession()) {
             var transaction = session.beginTransaction();
             try {
                 session.update(customer);
                 transaction.commit();
-                return customer.getId();
             } catch (Exception e) {
                 transaction.rollback();
                 throw e;
@@ -62,7 +64,7 @@ public class CustomerRepoImpl implements BaseRepo<Customer>{
 
 
     @Override
-    public Customer findByID(int customerID) {
+    public Customer findByID(Long customerID) {
         var session=sessionFactory.openSession();
         return session.find(Customer.class,customerID);
 
@@ -71,7 +73,43 @@ public class CustomerRepoImpl implements BaseRepo<Customer>{
 
 
     @Override
-    public List<Account> findAll() {
-        return null;
+    public List<Customer> findAll() {
+        var session=sessionFactory.openSession();
+        var transaction=session.beginTransaction();
+
+        List<Customer> customerList;
+        try {
+            CriteriaBuilder builder = session.getCriteriaBuilder();
+            CriteriaQuery criteria = builder.createQuery(Customer.class);
+            criteria.from(Customer.class);
+            customerList = session.createQuery(criteria).getResultList();
+            transaction.commit();
+        }catch (Exception e){
+            transaction.rollback();
+            throw e;
+        }
+        return customerList;
+    }
+
+
+
+    public int hqlTruncate(){
+
+        int returnQueryInt;
+        var session = sessionFactory.openSession();
+        var transaction=session.beginTransaction();
+        try {
+            String hql = String.format("delete from %s", "Customer");
+            Query query = session.createQuery(hql);
+            returnQueryInt=query.executeUpdate();
+            transaction.commit();
+
+        }catch (Exception e){
+            transaction.rollback();
+            throw e;
+        }
+
+        return returnQueryInt;
+
     }
 }
